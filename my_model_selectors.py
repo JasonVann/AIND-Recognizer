@@ -119,21 +119,59 @@ class SelectorDIC(ModelSelector):
 
         # TODO implement model selection based on DIC scores
         
+        def try1():
+            best_model = None
+            best_score = None
+            N = sum(self.lengths) # number of data points
+            M = self.max_n_components - self.min_n_components + 1 # total number of classes
+
+            lst_logL = []
+            models = []
+            for n in range(self.min_n_components, self.max_n_components + 1):
+                try:
+                    model = self.base_model(n)
+                    logL = model.score(self.X, self.lengths)
+                    lst_logL.append(logL)
+                    models.append(model)
+                except:
+                    pass
+
+            for (i, logL) in enumerate(lst_logL):
+                DIC = logL - 1/(M-1) * (sum(lst_logL) - logL)
+                if best_score is None or DIC > best_score:
+                    best_score = DIC
+                    best_model = models[i]
+
+            return best_model
+        
         best_model = None
         best_score = None
         N = sum(self.lengths) # number of data points
-              
+        M = self.max_n_components - self.min_n_components + 1 # total number of classes
+
+        lst_logL = []
+        models = []
         for n in range(self.min_n_components, self.max_n_components + 1):
             try:
                 model = self.base_model(n)
+                logL = model.score(self.X, self.lengths)
+                total_score = 0
+                for k, v in self.hwords.items():
+                    if k == self.this_word:
+                        continue
+                    temp_X, temp_lengths = v
+                    temp_logL = model.score(temp_X, temp_lengths)
+                    total_score += temp_logL
                 
-
-                
+                DIC = logL - total_score/(M-1)
+                if best_score is None or DIC > best_score:
+                    best_score = DIC
+                    best_model = model
+ 
             except:
                 pass
-            
-        return best_model
 
+        return best_model
 
 class SelectorCV(ModelSelector):
     ''' select best model based on average log Likelihood of cross-validation folds
@@ -144,4 +182,28 @@ class SelectorCV(ModelSelector):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
         # TODO implement model selection using CV
-        raise NotImplementedError
+        
+        best_model = None
+        best_score = None
+        N = sum(self.lengths) # number of data points
+              
+        for n in range(self.min_n_components, self.max_n_components + 1):
+            try:
+                model = self.base_model(n)
+                # TODO
+                
+
+                # For number of parameters, Katie_tiwari gave a formular in this post
+                # https://discussions.udacity.com/t/number-of-parameters-bic-calculation/233235/15
+                d = len(self.X[0]) # num of features
+                p = n*n + 2*n*d-1 # p: number of params
+
+                DIC = -2 * logL + p * math.log(N)
+                if best_score is None or DIC < best_score:
+                    # For DIC, smaller value is better
+                    best_score = score
+                    best_model = model
+            except:
+                pass
+            
+        return best_model
