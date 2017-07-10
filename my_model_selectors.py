@@ -160,25 +160,47 @@ class SelectorCV(ModelSelector):
         
         best_model = None
         best_score = None
+        best_n = None
         N = sum(self.lengths) # number of data points
-              
+        
+        word_sequences = self.sequences
+        n_splits = 3
+        if len(word_sequences) < n_splits:
+            n_splits = len(word_sequences)
+        
+        split_method = KFold(n_splits = n_splits)
+        
         for n in range(self.min_n_components, self.max_n_components + 1):
+            total = 0
+            i = 0
+            CV = None
             try:
-                model = self.base_model(n)
-                # TODO
-                
+                for cv_train_idx, cv_test_idx in split_method.split(word_sequences):
+                    train_X, train_lengths = combine_sequences(cv_train_idx, word_sequences)
 
-                # For number of parameters, Katie_tiwari gave a formular in this post
-                # https://discussions.udacity.com/t/number-of-parameters-bic-calculation/233235/15
-                d = len(self.X[0]) # num of features
-                p = n*n + 2*n*d-1 # p: number of params
+                    test_X, test_lengths = combine_sequences(cv_test_idx, word_sequences)
 
-                DIC = -2 * logL + p * math.log(N)
-                if best_score is None or DIC < best_score:
-                    # For DIC, smaller value is better
-                    best_score = score
+                    model = GaussianHMM(n_components=n, covariance_type="diag", n_iter=1000, 
+                                            random_state=self.random_state, verbose=False).fit(train_X, 
+                                                                                               train_lengths)
+
+                    score = model.score(test_X, test_lengths)
+                    #print(184, n, score)
+                    i += 1
+                    total += score
+
+                if i != 0:
+                    CV = total/i
+                    #print(189, CV, n, best_score)
+                if best_score is None or (CV is not None and CV > best_score):        
+                    best_score = CV
                     best_model = model
+                    best_n = n
             except:
                 pass
+               
+        if best_model is not None:
+            # Re-train with the whole dataset
+            best_model = self.base_model(best_n)
             
         return best_model
