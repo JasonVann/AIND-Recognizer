@@ -77,9 +77,34 @@ class SelectorBIC(ModelSelector):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
         # TODO implement model selection based on BIC scores
-        raise NotImplementedError
+        
+        best_model = None
+        best_score = None
+        N = sum(self.lengths) # number of data points
+              
+        for n in range(self.min_n_components, self.max_n_components + 1):
+            # Use try-catch to eliminate non-viable models from consideration.
+            # For example, for "FISH", this fails if there's more than 6 components
+            try:
+                model = self.base_model(n)
+                logL = model.score(self.X, self.lengths)
 
+                # For number of parameters, Katie_tiwari gave a formular in this post
+                # https://discussions.udacity.com/t/number-of-parameters-bic-calculation/233235/15
+                d = len(self.X[0]) # num of features
+                p = n*n + 2*n*d-1 # p: number of params
 
+                score = -2 * logL + p * math.log(N)
+                if best_score is None or score < best_score:
+                    # For BIC, smaller value is better
+                    best_score = score
+                    best_model = model
+            except:
+                #print('{} components fails'.format(n))
+                pass
+            
+        return best_model
+    
 class SelectorDIC(ModelSelector):
     ''' select best model based on Discriminative Information Criterion
 
@@ -93,7 +118,21 @@ class SelectorDIC(ModelSelector):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
         # TODO implement model selection based on DIC scores
-        raise NotImplementedError
+        
+        best_model = None
+        best_score = None
+        N = sum(self.lengths) # number of data points
+              
+        for n in range(self.min_n_components, self.max_n_components + 1):
+            try:
+                model = self.base_model(n)
+                
+
+                
+            except:
+                pass
+            
+        return best_model
 
 
 class SelectorCV(ModelSelector):
