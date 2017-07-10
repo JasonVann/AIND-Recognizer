@@ -119,43 +119,18 @@ class SelectorDIC(ModelSelector):
 
         # TODO implement model selection based on DIC scores
         
-        def try1():
-            best_model = None
-            best_score = None
-            N = sum(self.lengths) # number of data points
-            M = self.max_n_components - self.min_n_components + 1 # total number of classes
-
-            lst_logL = []
-            models = []
-            for n in range(self.min_n_components, self.max_n_components + 1):
-                try:
-                    model = self.base_model(n)
-                    logL = model.score(self.X, self.lengths)
-                    lst_logL.append(logL)
-                    models.append(model)
-                except:
-                    pass
-
-            for (i, logL) in enumerate(lst_logL):
-                DIC = logL - 1/(M-1) * (sum(lst_logL) - logL)
-                if best_score is None or DIC > best_score:
-                    best_score = DIC
-                    best_model = models[i]
-
-            return best_model
-        
         best_model = None
         best_score = None
         N = sum(self.lengths) # number of data points
-        M = self.max_n_components - self.min_n_components + 1 # total number of classes
-
+        M = len(self.hwords) # total number of classes
+        
         lst_logL = []
         models = []
         for n in range(self.min_n_components, self.max_n_components + 1):
             try:
                 model = self.base_model(n)
                 logL = model.score(self.X, self.lengths)
-                total_score = 0
+                total_score = 0 # acculator for the sum of other classes, excluding the current word
                 for k, v in self.hwords.items():
                     if k == self.this_word:
                         continue
