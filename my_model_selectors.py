@@ -164,43 +164,79 @@ class SelectorCV(ModelSelector):
         N = sum(self.lengths) # number of data points
         
         word_sequences = self.sequences
+        #print(167, len(word_sequences), word_sequences)
+        #print(168, self.lengths, self.X)
+        
         n_splits = 3
         if len(word_sequences) < n_splits:
             n_splits = len(word_sequences)
         
         split_method = KFold(n_splits = n_splits)
-        
+
+        #n = 11
         for n in range(self.min_n_components, self.max_n_components + 1):
-            total = 0
-            i = 0
+        #if n == 11:
             CV = None
+            scores = []
+            
             try:
+            #if 1 == 1:
                 for cv_train_idx, cv_test_idx in split_method.split(word_sequences):
                     train_X, train_lengths = combine_sequences(cv_train_idx, word_sequences)
 
                     test_X, test_lengths = combine_sequences(cv_test_idx, word_sequences)
 
                     model = GaussianHMM(n_components=n, covariance_type="diag", n_iter=1000, 
-                                            random_state=self.random_state, verbose=False).fit(train_X, 
-                                                                                               train_lengths)
+                                            random_state=self.random_state, verbose=False).fit(self.X, 
+                                                                                               self.lengths)
+                    #print(193, test_lengths)
+                    score = model.score(self.X, self.lengths)
+                    #print(194, n, score, test_lengths, train_lengths)
+                    
+                    scores.append(score)
 
-                    score = model.score(test_X, test_lengths)
-                    #print(184, n, score)
-                    i += 1
-                    total += score
-
-                if i != 0:
-                    CV = total/i
-                    #print(189, CV, n, best_score)
-                if best_score is None or (CV is not None and CV > best_score):        
+                if len(scores) != 0:
+                    CV = np.mean(scores)
+                    #print(200, CV, n, scores, best_score)
+                if CV is not None and (best_score is None or CV > best_score):        
+                    #print(196, CV, n, best_score)
+                    
                     best_score = CV
                     best_model = model
                     best_n = n
+                    #print(201, CV, n, best_score, best_n)
+                    test_X1 = test_X
+                    test_L1 = test_lengths
+                    train_X1 = train_X
+                    train_L1 = train_lengths
+                    #print(204, CV, n, best_score, train_L1, test_L1)
             except:
                 pass
-               
+            
+            
+        #print(210, best_score, best_n)
+        #test_model = self.base_model(2)
+        '''
+        print(219, len(word_sequences), word_sequences)
+        print(220, test_X1)
+        print(221, train_X1)
+        
+        test_model = GaussianHMM(n_components=best_n, covariance_type="diag", n_iter=1000, 
+                                            random_state=self.random_state, verbose=False).fit(train_X1, 
+                                                                                               train_lengths)
+        
+        test_score = test_model.score(test_X1, test_lengths)
+        print(214, test_score)
+        '''
+        
+        # We've trained different models with train data and picked the best one with the highest score on test data
+        # Now, in order to compare with other selectors, we need to train the "best number of components" model on the full data set, and compute score on the full data set
         if best_model is not None:
             # Re-train with the whole dataset
+            #print(216, best_score, best_n, len(train_L1), len(test_L1))
+            best_n = 11
             best_model = self.base_model(best_n)
-            
+            score = best_model.score(self.X, self.lengths)
+            #score = best_model.score(self.X, self.lengths)
+            print("Best score on full data is {}".format(score))
         return best_model

@@ -11,8 +11,8 @@ def recognize(models: dict, test_set: SinglesData):
    :return: (list, list)  as probabilities, guesses
        both lists are ordered by the test set word_id
        probabilities is a list of dictionaries where each key a word and value is Log Liklihood
-           [{SOMEWORD': LogLvalue, 'SOMEOTHERWORD' LogLvalue, ... },
-            {SOMEWORD': LogLvalue, 'SOMEOTHERWORD' LogLvalue, ... },
+           [{SOMEWORD': LogLvalue, 'SOMEOTHERWORD': LogLvalue, ... },
+            {SOMEWORD': LogLvalue, 'SOMEOTHERWORD': LogLvalue, ... },
             ]
        guesses is a list of the best guess words ordered by the test set word_id
            ['WORDGUESS0', 'WORDGUESS1', 'WORDGUESS2',...]
@@ -32,17 +32,15 @@ def recognize(models: dict, test_set: SinglesData):
         best_word = None
         best_score = float('-inf')
         prob = {}
-        for model_word, model in models.items():
+        for guess_word, model in models.items():
             try:
-                logL = model.score(X, lengths)
-                #if model_word not in prob:
-                    #prob[model_word] = logL
+                logL = model.score(X, lengths) 
+                prob[guess_word] = logL
                 if logL > best_score:
-                    prob[model_word] = logL
                     best_score = logL
-                    best_word, best_model = model_word, model
+                    best_word, best_model = guess_word, model
             except:
-                prob[model_word] = float('-inf')
+                prob[guess_word] = float('-inf')
                 pass
         probabilities.append(prob)
         guesses.append(best_word)
